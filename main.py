@@ -9,6 +9,7 @@ from topics import WRITING_TOPICS
 
 load_dotenv()
 
+
 # ─── 설정 ───────────────────────────────────────────────
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
