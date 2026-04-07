@@ -16,7 +16,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 ALARM_CHANNEL_ID = int(os.environ.get("ALARM_CHANNEL_ID", "0"))
 
 # 알람 시간 설정 (UTC 기준 / KST = UTC+9)
-ALARM_HOUR = int(os.environ.get("ALARM_HOUR", "1"))    # UTC 01:00 = KST 10:00
+ALARM_HOUR = int(os.environ.get("ALARM_HOUR", "11"))    # UTC 01:00 = KST 20:00
 ALARM_MINUTE = int(os.environ.get("ALARM_MINUTE", "0"))
 
 # ─── 작문 주제 목록 from topics.py ──────────────────────────────────────
@@ -44,12 +44,51 @@ def get_ai_feedback(topic: str, user_writing: str) -> str:
 Analyze the student's writing and provide structured feedback in Korean (한국어로 피드백 작성).
 
 Your feedback should include:
-1. 전반적인 평가 (Overall Assessment) - 칭찬으로 시작하세요
-2. 문법 오류 (Grammar Errors) - 구체적인 수정 예시 포함
-3. 어휘 개선 (Vocabulary Suggestions) - 더 나은 단어 제안
-4. 문장 구조 (Sentence Structure) - 개선할 점
-5. 총점 (Score) - 10점 만점으로 평가
-6. 모범 답안 예시 (Sample Answer) - 수정 예시 포함한 최종 수정본 제공
+**전반적인 평가 (Overall Assessment)** 
+- Start with positive feedback and briefly summarize strengths.
+**문법 (Grammar)**
+- Correct all grammar mistakes.  
+- Show: (original → corrected)  
+- Explain WHY each correction is needed.
+**어휘 개선 (Vocabulary Suggestions)** 
+- Suggest more natural or advanced words/phrases.  
+- Format: "original → improved"  
+- Explain nuance differences if needed.
+**문장 구조 (Sentence Structure)**
+- Identify awkward or unnatural sentences.  
+- Suggest more fluent/native-like versions.
+**총점 (Score)** 
+- 아래와 같은 기준으로 5점 만점으로 평가해주세요. 
+<5점>
+답안이 질문 주제와 관련이 있고, 일관적인 언어 능력을 보여줌.
+  • 설명과 예시, 세부사항 등이 서로 관련성이 있고 명료하게 제시됨
+  • 다양한 문장 구조와 정확한 단어, 관용어구를 유능하게 사용함
+  • 사소한 오타 도는 철자 오류를 제외하고는 어휘 또는 문법적 오류가 거의 없음
+<4점>
+답안이 온라인 토론 주제와 관련이 있고, 언어 능력은 답안의 아이디어를 쉽게 이해할 수 있게 함.
+  • 설명과 예시, 세부사항 등이 서로 관련성이 있고 적절하게 설명됨
+  • 다양한 문장 구조와 적절한 단어를 사용함
+  • 어휘 또는 문법적 오류가 많지 않음
+<3점>
+답안이 질문 주제와 대부분 관련이 있고 이해할 수 있는 수준에서 기여함.
+  • 설명과 예시, 세부사항의 일부가 누락되거나 불분명하거나 서로 연관성이 없음
+  • 문장 구조와 단어를 다양하게 사용하는 편임
+  • 눈에 띄는 어휘 또는 문법적 오류가 몇몇 있음
+<2점>
+답안이 질문에 관련시키려는 시도를 보이지만, 언어 능력의 한계로 답안의 아이디어를 이해하기 어려움.
+  • 설명이 부족하거나 부분적으로만 관련이 있음
+  • 문장 구조와 어휘 사용이 제한적임
+  • 어휘 또는 문법적 오류가 자주 보임
+<1점>
+답안이 질문에 관련되지 않으며, 언어 능력의 한계로 아이디어를 표현하지 못함,
+  • 아이디어가 일관되지 않음
+  • 문장 구조 및 어휘 사용의 범위가 매우 제한적임
+  • 심각한 어휘 또는 문법적 오류가 자주 보임
+<0점>
+답안을 작성하지 않은 경우, 주제에 반하거나 영어로 되어 있지 않은 경우, 또는 문제를 그대로 복사하거나 문제와 전혀 연관성이 없는 경우
+
+**모범 답안 예시 (Sample Answer)**
+- Rewrite my entire paragraph
 
 Be encouraging and constructive. Always end with positive motivation."""
             },
@@ -67,7 +106,7 @@ def create_topic_embed(topic_data: dict) -> discord.Embed:
     level_colors = {
         "Beginner": discord.Color.green(),
         "Intermediate": discord.Color.gold(),
-        "Advanced": discord.Color.red(),
+        # "Advanced": discord.Color.red(),
     }
     color = level_colors.get(topic_data["level"], discord.Color.blue())
 
@@ -78,13 +117,13 @@ def create_topic_embed(topic_data: dict) -> discord.Embed:
         timestamp=datetime.now()
     )
     embed.add_field(name="📊 난이도", value=topic_data["level"], inline=True)
-    embed.add_field(name="💡 힌트", value=topic_data["hint"], inline=False)
+    # embed.add_field(name="💡 힌트", value=topic_data["hint"], inline=False)
     embed.add_field(
         name="📝 참여 방법",
         value="이 채널에 영어로 작문을 보내주세요!\n`!write` 명령어로 언제든지 새 주제를 받을 수 있어요.",
         inline=False
     )
-    embed.set_footer(text="English Writing Practice Bot | 매일 꾸준히 연습해요! 💪")
+    embed.set_footer(text="멋있게 영어하는 그날까지 꾸준히 나아가세요! 💪")
     return embed
 
 
@@ -145,12 +184,12 @@ async def on_message(message):
             return
 
         async with message.channel.typing():
-            thinking_msg = await message.reply("🤔 AI가 작문을 분석하고 있어요... 잠시만 기다려주세요!")
+            thinking_msg = await message.reply("🤔 도우미가 글을 분석하고 있어요... 잠시만 기다려주세요!")
             try:
                 feedback = get_ai_feedback(topic["topic"], message.content)
 
                 feedback_embed = discord.Embed(
-                    title="📊 AI 작문 피드백",
+                    title="📊 AI 라이팅 피드백",
                     description=feedback,
                     color=discord.Color.purple(),
                     timestamp=datetime.now()
@@ -159,7 +198,7 @@ async def on_message(message):
                     name=f"{message.author.display_name}의 작문 분석",
                     icon_url=message.author.display_avatar.url
                 )
-                feedback_embed.set_footer(text="계속 연습하면 반드시 실력이 늘어요! 🌟")
+                feedback_embed.set_footer(text="내일은 더 나은 글을 쓰시게 될 것 같아요! 🌟")
 
                 await thinking_msg.delete()
                 await message.reply(embed=feedback_embed)
@@ -211,7 +250,7 @@ async def topic_by_level(ctx, level: str = "beginner"):
     topic_data = random.choice(filtered)
     user_sessions[ctx.author.id] = {"topic": topic_data, "waiting_for_writing": True}
     await ctx.send(embed=create_topic_embed(topic_data))
-    await ctx.send(f"{ctx.author.mention} **{level_key}** 주제를 받았어요! 작문을 보내주세요. ✍️")
+    await ctx.send(f"{ctx.author.mention} **{level_key}** 주제를 받았어요! 영어로 글을 써서 보내주시면 제가 분석해드릴게요! ✍️")
 
 
 # ─── 명령어: 알람 즉시 테스트 ────────────────────────────
@@ -239,7 +278,7 @@ async def help_command(ctx):
     embed.add_field(name="!level [난이도]", value="난이도별 주제 받기\n예: `!level beginner`", inline=False)
     embed.add_field(name="!test_alarm", value="알람 즉시 테스트", inline=False)
     embed.add_field(name="✍️ 피드백 받기", value="주제를 받은 후 채널에 영어 작문을 보내면 AI가 자동으로 피드백을 드려요!", inline=False)
-    embed.add_field(name="⏰ 자동 알람", value="매일 KST 10:00에 오늘의 주제가 자동으로 발송됩니다.", inline=False)
+    embed.add_field(name="⏰ 자동 알람", value="매일 오후 8시에 오늘의 작문 주제가 자동으로 발송됩니다.", inline=False)
     await ctx.send(embed=embed)
 
 
