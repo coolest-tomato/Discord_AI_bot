@@ -123,7 +123,7 @@ def create_topic_embed(topic_data: dict) -> discord.Embed:
         value="이 채널에 영어로 작문을 보내주세요!\n`!write` 명령어로 언제든지 새 주제를 받을 수 있어요.",
         inline=False
     )
-    embed.set_footer(text="멋있게 영어하는 그날까지 꾸준히 나아가세요! 💪")
+    embed.set_footer(text="유창하게 영어하는 그날까지 꾸준히 나아가요! 💪")
     return embed
 
 
@@ -195,8 +195,8 @@ async def on_message(message):
     if session.get("waiting_for_writing"):
         topic = session.get("topic") or getattr(bot, "today_topic", random.choice(random_topics))
 
-        if len(message.content.split()) < 5:
-            await message.reply("✏️ 조금 더 길게 작성해 주세요! (최소 5단어 이상)")
+        if len(message.content.split()) < 50:
+            await message.reply("✏️ 조금 더 길게 작성해 주세요! (최소 50단어 이상)")
             return
 
         async with message.channel.typing():
