@@ -157,9 +157,27 @@ async def on_ready():
     print(f"✅ {bot.user} 봇이 시작되었습니다!")
     bot.today_topic = random.choice(random_topics)
     daily_writing_alarm.start()
+    
+    # ─── 자유 대화 함수 추가 ──────────────────────────────────
+def get_ai_chat(user_message: str) -> str:
+    response = openai_client.chat.completions.create(
+        model="gpt-4o",
+        max_tokens=500,
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a friendly English learning assistant. Chat naturally in Korean. If the user writes in English, praise them and respond naturally. Keep responses concise."
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ]
+    )
+    return response.choices[0].message.content
 
 
-# ─── 메시지 수신 처리 (작문 피드백) ──────────────────────
+# ─── 메시지 수신 처리 ──────────────────────────────────────
 @bot.event
 async def on_message(message):
     if message.author.bot:
@@ -167,18 +185,16 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-    # 명령어는 건너뜀
     if message.content.startswith("!"):
         return
 
     user_id = message.author.id
     session = user_sessions.get(user_id, {})
 
-    # 작문 대기 중이거나 알람 채널에서 메시지를 보낸 경우
-    if session.get("waiting_for_writing") or (message.channel.id == ALARM_CHANNEL_ID and not message.content.startswith("!")):
+    # 작문 대기 중일 때만 피드백
+    if session.get("waiting_for_writing"):
         topic = session.get("topic") or getattr(bot, "today_topic", random.choice(random_topics))
 
-        # 최소 길이 체크
         if len(message.content.split()) < 5:
             await message.reply("✏️ 조금 더 길게 작성해 주세요! (최소 5단어 이상)")
             return
@@ -187,7 +203,6 @@ async def on_message(message):
             thinking_msg = await message.reply("🤔 도우미가 글을 분석하고 있어요... 잠시만 기다려주세요!")
             try:
                 feedback = get_ai_feedback(topic["topic"], message.content)
-
                 feedback_embed = discord.Embed(
                     title="📊 AI 라이팅 피드백",
                     description=feedback,
@@ -199,16 +214,23 @@ async def on_message(message):
                     icon_url=message.author.display_avatar.url
                 )
                 feedback_embed.set_footer(text="내일은 더 나은 글을 쓰시게 될 것 같아요! 🌟")
-
                 await thinking_msg.delete()
                 await message.reply(embed=feedback_embed)
 
-                # 세션 초기화
-                if user_id in user_sessions:
-                    del user_sessions[user_id]
+                # 피드백 후 → 자유 대화 모드로 전환
+                user_sessions[user_id] = {"chat_mode": True}
 
             except Exception as e:
                 await thinking_msg.edit(content=f"❌ 피드백 생성 중 오류가 발생했습니다: {str(e)}")
+
+    # 자유 대화 모드
+    elif session.get("chat_mode") and message.channel.id == ALARM_CHANNEL_ID:
+        async with message.channel.typing():
+            try:
+                reply = get_ai_chat(message.content)
+                await message.reply(reply)
+            except Exception as e:
+                await message.reply(f"❌ 오류: {str(e)}")
 
 
 # ─── 명령어: 새 주제 받기 ─────────────────────────────────
