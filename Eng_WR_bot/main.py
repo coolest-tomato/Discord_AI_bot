@@ -191,14 +191,15 @@ def get_ai_chat(user_message: str) -> str:
 async def on_message(message):
     if message.author.bot:
         return
+    
+    # ✅ 수면 모드 체크를 맨 앞으로 이동
+    if getattr(bot, "sleep_mode", False):
+        await bot.process_commands(message)  # !free 같은 명령어는 여전히 작동
+        return
 
     await bot.process_commands(message)
 
     if message.content.startswith("!"):
-        return
-    
-    # ✅ 수면 모드면 아무 응답 안 함
-    if getattr(bot, "sleep_mode", False):
         return
 
     user_id = message.author.id
@@ -306,6 +307,7 @@ async def test_alarm(ctx):
 async def stop_mode(ctx):
     """수면 모드 진입"""
     bot.sleep_mode = True
+    user_sessions.clear()
     await ctx.send("😴 수면 모드에 들어갔어요. `!free`로 깨울 수 있어요!")
 
 @bot.command(name="free")
